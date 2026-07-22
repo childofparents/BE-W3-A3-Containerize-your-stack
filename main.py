@@ -101,18 +101,24 @@ async def get_tasks(search: Optional[str] = None):
         return tasks
 
 
-@app.post("/tasks", status_code=201)
-async def create_task(task: TaskCreate):
-    """Create a new task in Postgres with done set to false."""
-    if not task.title or not task.title.strip():
-        return JSONResponse(status_code=400, content={"error": "title is required"})
+# ---------------------------------------------------------------------------
+# Stage 2: Read endpoints backed by Postgres
+# ---------------------------------------------------------------------------
 
-    new_task = Task(title=task.title.strip(), done=False)
+@app.get("/tasks/{task_id}")
+async def get_task(task_id: int):
+    """Fetch a single task by ID from Postgres."""
     with Session(engine) as session:
-        session.add(new_task)
-        session.commit()
-        session.refresh(new_task)
-        return new_task
+        statement = select(Task).where(Task.id == task_id)
+        task = session.exec(statement).first()
+
+        if task is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Task not found"}
+            )
+
+        return task
 
 
 @app.put("/tasks/{task_id}")
