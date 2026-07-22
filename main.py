@@ -120,6 +120,21 @@ async def get_task(task_id: int):
 
         return task
 
+# ---------------------------------------------------------------------------
+# Stage 3: Create, update, and delete endpoints backed by Postgres
+# ---------------------------------------------------------------------------
+@app.post("/tasks", status_code=201)
+async def create_task(task: TaskCreate):
+    """Create a new task in Postgres with done set to false."""
+    if not task.title or not task.title.strip():
+        return JSONResponse(status_code=400, content={"error": "title is required"})
+
+    new_task = Task(title=task.title.strip(), done=False)
+    with Session(engine) as session:
+        session.add(new_task)
+        session.commit()
+        session.refresh(new_task)
+        return new_task
 
 @app.put("/tasks/{task_id}")
 async def update_task(task_id: int, update: TaskUpdate):
